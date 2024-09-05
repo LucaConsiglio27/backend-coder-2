@@ -1,18 +1,20 @@
-import bcrypt from 'bcrypt'; // Importar bcrypt para encriptar y verificar contraseñas
+// src/utils/hashFunctions.js
 
-const SALT_ROUND = 10; // Definir el número de rondas de sal para el hash
+const bcrypt = require('bcrypt');
 
-// Función para crear un hash de una contraseña
-export async function createHash(password) {
-    const hashPassword = await bcrypt.hash(
-        password, // Contraseña a encriptar
-        bcrypt.genSaltSync(SALT_ROUND) // Generar una sal y aplicarla a la contraseña
-    );
-    return hashPassword; // Devolver la contraseña encriptada
+const SALT_ROUNDS = 10; // Número de rondas de sal para bcrypt
+
+// Función para crear un hash de la contraseña
+async function createHash(password) {
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    return hashedPassword;
 }
 
-// Función para verificar si una contraseña ingresada coincide con su hash almacenado
-export async function verifyPassword(password, hash) {
-    const isPasswordCorrect = await bcrypt.compare(password, hash); // Comparar la contraseña con el hash
-    return isPasswordCorrect; // Devolver true si coinciden, false en caso contrario
+// Función para verificar la contraseña ingresada con el hash almacenado
+async function verifyPassword(password, hash) {
+    const isMatch = await bcrypt.compare(password, hash);
+    return isMatch;
 }
+
+module.exports = { createHash, verifyPassword };

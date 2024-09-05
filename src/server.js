@@ -1,26 +1,38 @@
+// src/server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const passport = require('./config/passport.config');
 const authRoutes = require('./routes/auth.routes');
+const dotenv = require('dotenv');
+
+dotenv.config(); // Cargar variables de entorno desde .env
 
 const app = express();
-const port = 3000; // Definir el puerto en el que correrá el servidor
+const port = process.env.PORT || 3000; // Puerto definido en variables de entorno
 
-app.use(express.json()); // Middleware para parsear JSON en las solicitudes
-app.use(cookieParser()); // Middleware para parsear cookies
-app.use(passport.initialize()); // Inicializar Passport para autenticación
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
+app.use(passport.initialize());
 
-app.use('/api/sessions', authRoutes); // Usar las rutas de autenticación definidas
+// Rutas de autenticación
+app.use('/api/sessions', authRoutes);
 
-// Conectar a la base de datos de MongoDB
-mongoose.connect('mongodb://localhost:27017/yourdbname', {
+// Conexión a la base de datos
+mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useCreateIndex: true,
-});
-
-// Iniciar el servidor
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+})
+    .then(() => {
+        console.log('Connected to MongoDB');
+        // Iniciar el servidor solo si la base de datos se conecta correctamente
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
+        });
+    })
+    .catch((err) => {
+        console.error('Database connection error:', err.message);
+        process.exit(1); // Salir del proceso si no se puede conectar a la base de datos
+    });

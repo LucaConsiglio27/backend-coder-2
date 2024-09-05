@@ -1,3 +1,5 @@
+// src/controller/auth.controller.js
+
 const User = require('../model/user.model');
 const { generateToken } = require('../utils/jwtFunctions');
 const { createHash } = require('../utils/hashFunctions');
@@ -5,35 +7,56 @@ const { createHash } = require('../utils/hashFunctions');
 // Controlador para registrar un nuevo usuario
 const registerUser = async (req, res) => {
     try {
-        const { first_name, last_name, email, age, password, cart } = req.body; // Extraer datos del cuerpo de la solicitud
-        const hashedPassword = await createHash(password); // Encriptar la contraseña
+        const { first_name, last_name, email, age, password, cart } = req.body;
 
+        // Verificar si el usuario ya existe
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ message: 'Email already registered' });
+
+        // Crear el hash de la contraseña
+        const hashedPassword = await createHash(password);
+
+        // Crear un nuevo usuario
         const newUser = new User({
             first_name,
             last_name,
             email,
             age,
-            password: hashedPassword, // Guardar la contraseña encriptada
+            password: hashedPassword,
             cart
         });
 
-        await newUser.save(); // Guardar el nuevo usuario en la base de datos
-        res.status(201).json({ message: 'User registered successfully' }); // Responder con éxito
+        // Guardar el usuario en la base de datos
+        await newUser.save();
+
+        res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
-        res.status(500).json({ message: 'Error registering user', error: err }); // Manejar errores
+        res.status(500).json({ message: 'Error registering user', error: err.message });
     }
 };
 
 // Controlador para iniciar sesión de un usuario
 const loginUser = async (req, res) => {
-    const token = generateToken({ id: req.user._id, email: req.user.email }); // Generar un token JWT para el usuario autenticado
-    res.cookie('jwt', token, { httpOnly: true }); // Guardar el token en una cookie HTTP-only
-    res.json({ message: 'Login successful', token }); // Responder con éxito
+    try {
+        // Generar un token JWT
+        const token = generateToken({ id: req.user._id, email: req.user.email });
+
+        // Guardar el token en una cookie HTTP-only
+        res.cookie('jwt', token, { httpOnly: true, secure: true });
+
+        res.json({ message: 'Login successful', token });
+    } catch (err) {
+        res.status(500).json({ message: 'Error logging in', error: err.message });
+    }
 };
 
-// Controlador para obtener los datos del usuario actual autenticado
+// Controlador para obtener el usuario actual autenticado
 const getCurrentUser = (req, res) => {
-    res.json({ user: req.user }); // Responder con los datos del usuario extraído del token JWT
+    try {
+        res.json({ user: req.user });
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching user data', error: err.message });
+    }
 };
 
-module.exports = { registerUser, loginUser, getCurrentUser }; // Exportar los controladores para ser utilizados en las rutas
+module.exports = { registerUser, loginUser, getCurrentUser };
